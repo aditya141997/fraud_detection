@@ -1,0 +1,203 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fraud Scoring Console</title>
+<style>
+  :root { --bg:#f6f7f9; --card:#fff; --text:#1c2230; --muted:#667085; --line:#e3e6ec; --accent:#3b5bdb;
+          --ok:#1f9d55; --bad:#d6336c; --okbg:#e6f6ec; --badbg:#fde8f0; --warnbg:#fff4d6; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#12151c; --card:#1b2030; --text:#e8ebf2; --muted:#98a2b3; --line:#2b3246; --accent:#7c93ff;
+            --ok:#4ade80; --bad:#ff7aa8; --okbg:#143323; --badbg:#3a1826; --warnbg:#3a3014; }
+  }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--text); font:15px/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif; }
+  main { max-width:1040px; margin:0 auto; padding:24px 16px 48px; }
+  h1 { font-size:22px; margin:0 0 4px; }
+  .sub { color:var(--muted); margin:0 0 20px; }
+  .grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+  @media (max-width:800px) { .grid { grid-template-columns:1fr; } }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:18px; }
+  h2 { font-size:13px; text-transform:uppercase; letter-spacing:.06em; color:var(--muted); margin:0 0 12px; }
+  label { display:block; font-size:12px; color:var(--muted); margin:10px 0 3px; }
+  input, select, textarea { width:100%; padding:8px 10px; border:1px solid var(--line); border-radius:8px;
+    background:var(--bg); color:var(--text); font:inherit; }
+  textarea { font-family:ui-monospace,Consolas,monospace; font-size:12px; min-height:150px; }
+  .row { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .btns { display:flex; gap:10px; flex-wrap:wrap; margin-top:16px; }
+  button { padding:9px 16px; border-radius:8px; border:1px solid var(--line); background:var(--card); color:var(--text);
+    font:inherit; cursor:pointer; }
+  button.primary { background:var(--accent); border-color:var(--accent); color:#fff; font-weight:600; }
+  button:disabled { opacity:.5; cursor:wait; }
+  .verdict { padding:14px 16px; border-radius:10px; font-weight:700; font-size:18px; }
+  .verdict.flag { background:var(--badbg); color:var(--bad); }
+  .verdict.allow { background:var(--okbg); color:var(--ok); }
+  .verdict.err { background:var(--warnbg); }
+  .kv { display:grid; grid-template-columns:auto 1fr; gap:6px 14px; margin:14px 0; font-size:14px; }
+  .kv span:nth-child(odd) { color:var(--muted); }
+  .note { background:var(--warnbg); border-radius:8px; padding:10px 12px; font-size:13px; margin-top:12px; }
+  .bar { height:10px; background:var(--line); border-radius:6px; overflow:hidden; }
+  .bar > div { height:100%; background:var(--accent); }
+  .why { display:grid; grid-template-columns:110px 1fr 56px; align-items:center; gap:8px; font-size:13px; margin-bottom:6px; }
+  pre { background:var(--bg); border:1px solid var(--line); border-radius:8px; padding:10px; overflow:auto; font-size:12px; max-height:220px; }
+  .muted { color:var(--muted); font-size:13px; }
+  #status { font-size:13px; }
+  .dot { display:inline-block; width:9px; height:9px; border-radius:50%; background:var(--muted); margin-right:6px; }
+  .dot.up { background:var(--ok); } .dot.down { background:var(--bad); }
+</style>
+</head>
+<body>
+<main>
+  <h1>Fraud Scoring Console</h1>
+  <p class="sub">Send a transaction to <code>/score</code> and see the model's decision.
+    <span id="status"><span class="dot"></span><span id="statustext">checking…</span></span></p>
+
+  <div class="grid">
+    <section class="card">
+      <h2>Transaction</h2>
+      <label for="sample">Load a sample (real held-out IEEE-CIS rows)</label>
+      <select id="sample"><option value="">— choose —</option></select>
+
+      <div class="row">
+        <div><label for="TransactionAmt">Amount</label><input id="TransactionAmt" type="number" step="any" value="59"></div>
+        <div><label for="TransactionDT">TransactionDT (seconds)</label><input id="TransactionDT" type="number" value="15000000"></div>
+      </div>
+      <div class="row">
+        <div><label for="TransactionID">TransactionID</label><input id="TransactionID" type="number" value="1"></div>
+        <div><label for="ProductCD">ProductCD</label><input id="ProductCD" value="W"></div>
+      </div>
+      <div class="row">
+        <div><label for="card1">card1</label><input id="card1" type="number"></div>
+        <div><label for="card2">card2</label><input id="card2" type="number"></div>
+        <div><label for="card3">card3</label><input id="card3" type="number"></div>
+        <div><label for="card5">card5</label><input id="card5" type="number"></div>
+      </div>
+      <div class="row">
+        <div><label for="P_emaildomain">Email domain</label><input id="P_emaildomain" placeholder="gmail.com"></div>
+        <div><label for="DeviceInfo">DeviceInfo</label><input id="DeviceInfo" placeholder="Windows"></div>
+      </div>
+
+      <label for="json">Full payload (JSON). Any other IEEE-CIS column can be added here; absent ones are missing.</label>
+      <textarea id="json" spellcheck="false"></textarea>
+
+      <div class="btns">
+        <button class="primary" id="go">Score</button>
+        <button id="why">Score + explain</button>
+        <button id="sync" title="Rebuild the JSON from the fields above">Fields → JSON</button>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Result</h2>
+      <div id="result"><p class="muted">Pick a sample or edit the fields, then press Score.</p></div>
+    </section>
+  </div>
+</main>
+
+<script>
+const $ = id => document.getElementById(id);
+const FIELDS = ["TransactionID","TransactionDT","TransactionAmt","ProductCD","card1","card2","card3","card5","P_emaildomain","DeviceInfo"];
+const NUMERIC = new Set(["TransactionID","TransactionDT","TransactionAmt","card1","card2","card3","card5"]);
+let samples = [];
+
+function fieldsToJson() {
+  let base = {};
+  try { base = JSON.parse($("json").value || "{}"); } catch (e) {}
+  for (const f of FIELDS) {
+    const v = $(f).value.trim();
+    if (v === "") { delete base[f]; continue; }
+    base[f] = NUMERIC.has(f) ? Number(v) : v;
+  }
+  $("json").value = JSON.stringify(base, null, 2);
+}
+function jsonToFields(t) {
+  for (const f of FIELDS) $(f).value = t[f] ?? "";
+}
+function esc(s) {
+  return String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+}
+
+async function health() {
+  const dot = document.querySelector("#status .dot");
+  try {
+    const r = await fetch("/health"); const j = await r.json();
+    $("statustext").textContent = r.ok ? "API up" + (j.model_version ? " · model v" + j.model_version : "") : "API unhealthy";
+    dot.className = "dot " + (r.ok ? "up" : "down");
+  } catch (e) {
+    $("statustext").textContent = "API unreachable";
+    dot.className = "dot down";
+  }
+}
+
+async function loadSamples() {
+  try {
+    samples = await (await fetch("/ui/samples.json")).json();
+    samples.forEach((s, i) => {
+      const o = document.createElement("option");
+      o.value = i; o.textContent = "#" + (i + 1) + " · " + s.label + " · amount " + s.amount;
+      $("sample").appendChild(o);
+    });
+  } catch (e) {}
+}
+$("sample").onchange = () => {
+  const s = samples[$("sample").value]; if (!s) return;
+  $("json").value = JSON.stringify(s.txn, null, 2); jsonToFields(s.txn);
+};
+$("sync").onclick = fieldsToJson;
+FIELDS.forEach(f => $(f).addEventListener("change", fieldsToJson));
+
+async function run(explain) {
+  let body;
+  try { body = JSON.parse($("json").value); }
+  catch (e) { $("result").innerHTML = '<div class="verdict err">JSON is not valid: ' + esc(e.message) + "</div>"; return; }
+  $("go").disabled = $("why").disabled = true;
+  $("result").innerHTML = '<p class="muted">Scoring…</p>';
+  const t0 = performance.now();
+  const post = (url) => fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+  try {
+    const r = await post("/score");
+    const ms = Math.round(performance.now() - t0);
+    const j = await r.json();
+    if (!r.ok) {
+      $("result").innerHTML = '<div class="verdict err">HTTP ' + r.status + "</div><pre>" + esc(JSON.stringify(j, null, 2)) + "</pre>";
+      return;
+    }
+    let html = '<div class="verdict ' + (j.flagged ? "flag" : "allow") + '">' + (j.flagged ? "FLAGGED as fraud" : "Allowed") + "</div>" +
+      '<div class="kv">' +
+      "<span>Score</span><span>" + j.score.toPrecision(4) + "</span>" +
+      "<span>Threshold</span><span>" + j.threshold + "</span>" +
+      "<span>Model version</span><span>v" + esc(j.model_version) + "</span>" +
+      "<span>Round trip</span><span>" + ms + " ms (includes network)</span></div>";
+    if (j.missing_entities.length) {
+      html += '<div class="note"><b>No online features for:</b> ' + j.missing_entities.map(esc).join(", ") +
+        ". The Redis feature store has no recent history for these entities, so the rolling velocity features are empty. " +
+        "The score is still valid but ignores that signal.</div>";
+    }
+    if (explain) {
+      const er = await post("/explain?k=5");
+      const ej = await er.json();
+      if (er.ok && ej.reasons.length) {
+        const max = Math.max(...ej.reasons.map(x => Math.abs(x.shap)), 1e-9);
+        html += '<h2 style="margin-top:18px">Top reasons pushing towards fraud (SHAP)</h2>' + ej.reasons.map(x =>
+          '<div class="why"><span>' + esc(x.feature) + '</span><div class="bar"><div style="width:' +
+          Math.min(100, Math.abs(x.shap) / max * 100) + '%"></div></div><span>+' + x.shap.toFixed(2) + "</span></div>").join("");
+      } else if (er.ok) {
+        html += '<div class="note">No feature pushed this transaction towards fraud.</div>';
+      } else {
+        html += '<div class="note">Explain failed: HTTP ' + er.status + " " + esc(JSON.stringify(ej)) + "</div>";
+      }
+    }
+    html += '<h2 style="margin-top:18px">Raw response</h2><pre>' + esc(JSON.stringify(j, null, 2)) + "</pre>";
+    $("result").innerHTML = html;
+  } catch (e) {
+    $("result").innerHTML = '<div class="verdict err">Request failed: ' + esc(e.message) + "</div>";
+  } finally { $("go").disabled = $("why").disabled = false; }
+}
+$("go").onclick = () => run(false);
+$("why").onclick = () => run(true);
+
+fieldsToJson(); health(); loadSamples();
+</script>
+</body>
+</html>

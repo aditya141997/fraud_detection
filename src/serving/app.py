@@ -18,6 +18,7 @@ from pathlib import Path
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, HTTPException, Response
+from fastapi.responses import FileResponse
 from prometheus_client import (CONTENT_TYPE_LATEST, CollectorRegistry, Counter, Histogram, generate_latest,
                                multiprocess)
 from pydantic import BaseModel, ConfigDict, Field
@@ -123,6 +124,21 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="fraud-stream scoring", lifespan=lifespan)
+
+
+UI_DIR = Path(os.environ.get("UI_DIR") or Path(__file__).resolve().parents[2] / "deploy" / "ui")
+
+
+@app.get("/", include_in_schema=False)
+@app.get("/ui", include_in_schema=False)
+def ui():
+    """Small browser console for trying /score and /explain by hand."""
+    return FileResponse(UI_DIR / "index.html")
+
+
+@app.get("/ui/samples.json", include_in_schema=False)
+def ui_samples():
+    return FileResponse(UI_DIR / "samples.json")
 
 
 @app.get("/health")
