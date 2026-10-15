@@ -7,7 +7,7 @@ COPY src ./src
 COPY deploy ./deploy
 ENV FEAST_REPO_PATH=/app/deploy/feast \
     KAFKA_BOOTSTRAP=redpanda.railway.internal:9092 \
-    PYTHONUNBUFFERED=1
+    EXPLAIN_EAGER=0 \n    WORKERS=1 \n    PYTHONUNBUFFERED=1
 RUN chmod +x deploy/entrypoint.sh
 EXPOSE 8000
 CMD ["deploy/entrypoint.sh"]
