@@ -1,0 +1,11 @@
+.venv/
+data/
+mlruns/
+*.log
+.git/
+.github/
+__pycache__/
+.pytest_cache/
+.prefect/
+reports/
+loadtest/

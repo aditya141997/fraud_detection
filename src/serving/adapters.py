@@ -1,6 +1,7 @@
 """Infrastructure adapters for the scoring service: Feast/Redis feature lookup and Kafka event publishing."""
 import json
 import logging
+import os
 import time
 from pathlib import Path
 
@@ -10,7 +11,7 @@ from feast import FeatureStore
 from src.serving.scorer import JOIN_KEY, VIEW_COLUMNS
 
 log = logging.getLogger("fraud.serving")
-REPO = Path(__file__).resolve().parents[2] / "feature_repo"
+REPO = Path(os.environ.get("FEAST_REPO_PATH") or Path(__file__).resolve().parents[2] / "feature_repo")
 SCORED_TOPIC = "scored-events"
 
 

@@ -1,0 +1,23 @@
+name: deploy
+
+# CD: runs only after the `ci` workflow succeeded on main.
+on:
+  workflow_run:
+    workflows: [ci]
+    branches: [main]
+    types: [completed]
+
+jobs:
+  railway:
+    if: github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+      - run: npm i -g @railway/cli
+      - name: Deploy the api service
+        run: railway up --service api --ci
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}

@@ -19,3 +19,22 @@ jobs:
       # IEEE-CIS parquet files (not in the repo) and skips itself here; run it locally after `make data features`.
       - name: Test
         run: python -m pytest -q
+
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build the serving image
+        run: docker build -t fraud-api .
+      - name: Start it against Redis and check /health
+        run: |
+          docker network create ci
+          docker run -d --name redis --network ci redis:7-alpine
+          docker run -d --name api --network ci -p 8000:8000 \
+            -e REDIS_URL=redis://redis:6379 -e PUBLISH_SCORED_EVENTS=0 -e WORKERS=1 fraud-api
+          for i in $(seq 1 60); do
+            curl -sf localhost:8000/health && exit 0
+            sleep 5
+          done
+          docker logs api
+          exit 1

@@ -18,7 +18,7 @@ import uvicorn
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--workers", type=int, default=4)
-    ap.add_argument("--port", type=int, default=8000)
+    ap.add_argument("--port", type=int, default=int(os.environ.get("PORT", 8000)))
     a = ap.parse_args()
     if a.workers > 1:
         d = Path(tempfile.gettempdir()) / "fraud_prom_multiproc"
