@@ -1,0 +1,17 @@
+﻿data/raw/*
+data/processed/*
+!data/*/.gitkeep
+.venv/
+__pycache__/
+mlruns/
+mlartifacts/
+*.pyc
+.env
+.prefect/
+
+*.log
+mlflow.db
+.pytest_cache/
+reports/*.html
+data/*.db
+data/*.err

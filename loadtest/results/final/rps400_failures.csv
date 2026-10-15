@@ -1,0 +1,2 @@
+Method,Name,Error,Occurrences,First Seen,Last Seen
+POST,/score,CatchResponseError('HTTP 0'),25,2026-10-13T14:23:37Z,2026-10-13T14:23:37Z

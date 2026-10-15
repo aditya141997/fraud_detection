@@ -1,0 +1,9 @@
+project: fraud_stream
+provider: local
+registry: ../data/registry.db
+online_store:
+  type: redis
+  connection_string: localhost:6379
+offline_store:
+  type: file
+entity_key_serialization_version: 3

@@ -1,0 +1,31 @@
+groups:
+  - name: fraud-scoring
+    rules:
+      - alert: ScoringP95LatencyHigh
+        # server-side handler time; the 80 ms target is measured end to end with Locust (see README)
+        expr: histogram_quantile(0.95, sum by (le) (rate(fraud_score_request_seconds_bucket[1m]))) > 0.08
+        for: 1m
+        labels: {severity: page}
+        annotations: {summary: "p95 /score latency above 80 ms for 1 minute"}
+      - alert: ScoringErrors
+        expr: sum(rate(fraud_score_errors_total[1m])) > 0
+        for: 30s
+        labels: {severity: page}
+        annotations: {summary: "/score is failing (feature store or model errors)"}
+      - alert: OnlineFeaturesMissing
+        expr: sum(rate(fraud_feature_missing_total[2m])) / sum(rate(fraud_score_request_seconds_count[2m])) > 0.05
+        for: 2m
+        labels: {severity: warn}
+        annotations: {summary: "More than 5% of scored transactions have no online features (consumer behind?)"}
+  - name: fraud-drift
+    rules:
+      - alert: InputDriftDetected
+        expr: fraud_dataset_drift_detected == 1
+        for: 2m
+        labels: {severity: warn}
+        annotations: {summary: "Drifted-column share above the calibrated alert level (retrain trigger, Week 4)"}
+      - alert: ScoreDriftDetected
+        expr: fraud_score_drift_detected == 1
+        for: 2m
+        labels: {severity: warn}
+        annotations: {summary: "Model score distribution has drifted from the validation reference"}
