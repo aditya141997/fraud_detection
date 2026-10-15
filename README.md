@@ -118,7 +118,7 @@ transaction that was fraud: `C13` (+3.01), `DeviceInfo` (+2.62), `C1` (+1.60). M
 | Online (Redis) vs offline (Parquet) card features, 200 cards after 3,000 replayed events | max abs diff 1.8e-12 |
 | Feature parity unit test, 20,000 events, 3 entity types | passing |
 | p50 / p95 / p99 scoring latency | 23 / 35 / 46 ms at 100 req/s; 24 / 80 / 110 ms at 400 req/s; see [Serving](#serving) |
-| Drift alert to promoted model | _pending (Week 4)_ |
+| Drift alert to promoted model | run once end to end on injected drift; retrain was forced (the trigger did not fire in time), challenger v5 cut shadow cost 39.2% and was promoted; elapsed time not measured, see [Retraining and promotion](#retraining-and-promotion) |
 
 ## Closing the limitations
 
